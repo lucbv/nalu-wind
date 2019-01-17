@@ -57,7 +57,8 @@ TpetraLinearSolver::TpetraLinearSolver(
   : LinearSolver(solverName,linearSolvers, config),
     params_(params),
     paramsPrecond_(paramsPrecond),
-    preconditionerType_(config->preconditioner_type())
+    preconditionerType_(config->preconditioner_type()),
+    useSegregatedSolver_(config->useSegregatedSolver())
 {
   activateMueLu_ = config->use_MueLu();
 }
@@ -94,10 +95,10 @@ void TpetraLinearSolver::setupLinearSolver(
   }
   else {
     Ifpack2::Factory factory;
-    preconditioner_ = factory.create (preconditionerType_, 
+    preconditioner_ = factory.create (preconditionerType_,
                                       Teuchos::rcp_const_cast<const LinSys::Matrix>(matrix_), 0);
     preconditioner_->setParameters(*paramsPrecond_);
-    
+
     // delay initialization for some preconditioners
     if ( "RILUK" != preconditionerType_ ) {
       preconditioner_->initialize();
@@ -163,7 +164,7 @@ int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::Vector
   }
   matrix_->apply(*sln, resid);
 
-  resid.update(-1.0, *rhs_, 1.0); 
+  resid.update(-1.0, *rhs_, 1.0);
 
   if ( whichNorm == 0 )
     norm = resid.normInf();
@@ -227,6 +228,15 @@ TpetraLinearSolver::solve(
   residual_norm(whichNorm, sln, finalResidNrm);
 
   return status;
+}
+
+PetraType
+TpetraLinearSolver::getType() {
+  if(useSegregatedSolver_) {
+    return PT_TPETRA_SEGREGATED;
+  } else {
+    return PT_TPETRA;
+  }
 }
 
 } // namespace nalu

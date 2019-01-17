@@ -49,12 +49,12 @@ LinearSolvers::load(const YAML::Node & node)
     for ( size_t inode = 0; inode <  nodes.size(); ++inode ) {
       const YAML::Node linear_solver_node = nodes[inode] ;
       std::string solver_type = "tpetra";
-      get_if_present_no_default(linear_solver_node, "type", solver_type);      
+      get_if_present_no_default(linear_solver_node, "type", solver_type);
       // proceed with the single supported solver strategy
       if (solver_type == "tpetra") {
         TpetraLinearSolverConfig * linearSolverConfig = new TpetraLinearSolverConfig();
         linearSolverConfig->load(linear_solver_node);
-        solverTpetraConfig_[linearSolverConfig->name()] = linearSolverConfig; 
+        solverTpetraConfig_[linearSolverConfig->name()] = linearSolverConfig;
       }
       else if (solver_type == "hypre") {
 #ifdef NALU_USES_HYPRE
@@ -83,15 +83,16 @@ LinearSolvers::create_solver(
 
   // provide unique name
   std::string solverName = EquationTypeMap[theEQ] + "_Solver";
-  
+
   LinearSolver *theSolver = NULL;
-  
+
   // check in tpetra map...
   bool foundT = false;
   SolverTpetraConfigMap::const_iterator iterT
     = solverTpetraConfig_.find(solverBlockName);
   if (iterT != solverTpetraConfig_.end()) {
     TpetraLinearSolverConfig *linearSolverConfig = (*iterT).second;
+    if(linearSolverConfig->useSegregatedSolver()) {std::cout << "Use Tpetra segregated momentum solve!" << std::endl;}
     foundT = true;
     theSolver = new TpetraLinearSolver(solverName,
                                        linearSolverConfig,

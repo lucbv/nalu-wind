@@ -47,6 +47,7 @@ TpetraLinearSolverConfig::load(const YAML::Node & node)
   get_if_present(node, "max_iterations", max_iterations, 50);
   get_if_present(node, "kspace", kspace, 50);
   get_if_present(node, "output_level", output_level, 0);
+  get_if_present(node, "segregated_solver", useSegregatedSolver_, useSegregatedSolver_);
 
   tol = tolerance_;
 
@@ -56,7 +57,7 @@ TpetraLinearSolverConfig::load(const YAML::Node & node)
   if (output_level > 0)
   {
     params_->set("Verbosity", Belos::Errors + Belos::Warnings + Belos::StatusTestDetails);
-    params_->set("Output Style",Belos::Brief); 
+    params_->set("Output Style",Belos::Brief);
   }
 
   params_->set("Output Frequency", output_level);

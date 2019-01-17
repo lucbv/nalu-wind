@@ -44,9 +44,10 @@ namespace nalu{
 
 /** Type of solvers available in Nalu simulation **/
   enum PetraType {
-    PT_TPETRA,       //!< Nalu Tpetra interface
-    PT_HYPRE,        //!< Direct HYPRE interface
-    PT_HYPRE_SEGREGATED, //!< Direct HYPRE Segregated momentum solver
+    PT_TPETRA,             //!< Nalu Tpetra interface
+    PT_TPETRA_SEGREGATED,  //!< Nalu Tpetra Segregated momentum solver
+    PT_HYPRE,              //!< Direct HYPRE interface
+    PT_HYPRE_SEGREGATED,   //!< Direct HYPRE Segregated momentum solver
     PT_END
   };
 
@@ -208,7 +209,7 @@ class TpetraLinearSolver : public LinearSolver
     const Teuchos::RCP<Teuchos::ParameterList> paramsPrecond,
     LinearSolvers *linearSolvers);
   virtual ~TpetraLinearSolver() ;
-  
+
     void setSystemObjects(
       Teuchos::RCP<LinSys::Matrix> matrix,
       Teuchos::RCP<LinSys::Vector> rhs);
@@ -245,11 +246,12 @@ class TpetraLinearSolver : public LinearSolver
       double & scaledResidual,
       bool isFinalOuterIter);
 
-    virtual PetraType getType() override { return PT_TPETRA; }
+    virtual PetraType getType() override;
 
   private:
   //! The solver parameters
     const Teuchos::RCP<Teuchos::ParameterList> params_;
+    const bool useSegregatedSolver_;
 
   //! The preconditioner parameters
     const Teuchos::RCP<Teuchos::ParameterList> paramsPrecond_;
