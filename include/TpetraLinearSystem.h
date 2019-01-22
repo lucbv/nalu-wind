@@ -123,6 +123,13 @@ public:
   // Solve
   int solve(stk::mesh::FieldBase * linearSolutionField);
   void loadComplete();
+  void segregateProblem(Teuchos::RCP<LinSys::Matrix> inputMatrix,
+                        Teuchos::RCP<LinSys::Vector> inputRhs,
+                        Teuchos::RCP<LinSys::Vector> inputSln,
+                        Teuchos::RCP<LinSys::Matrix>& segregatedMatrix,
+                        Teuchos::RCP<LinSys::MultiVector>& segregatedRhs,
+                        Teuchos::RCP<LinSys::MultiVector>& segregatedSln);
+  void segregateMap(Teuchos::RCP<const LinSys::Map> inputMap, Teuchos::RCP<LinSys::Map>& segregatedMap);
   void writeToFile(const char * filename, bool useOwned=true);
   void printInfo(bool useOwned=true);
   void writeSolutionToFile(const char * filename, bool useOwned=true);

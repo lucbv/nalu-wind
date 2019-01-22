@@ -162,7 +162,7 @@ int TpetraLinearSystem::getDofStatus(stk::mesh::Entity node)
 stk::mesh::Entity get_entity_master(const stk::mesh::BulkData& bulk,
                              stk::mesh::Entity entity,
                              stk::mesh::EntityId naluId)
-{ 
+{
   bool thisEntityIsMaster = (bulk.identifier(entity) == naluId);
   if (thisEntityIsMaster) {
     return entity;
@@ -287,7 +287,7 @@ TpetraLinearSystem::beginLinearSystemConstruction()
     }
   }
   ThrowRequire(localId == numOwnedNodes);
-  
+
   // now sharedNotOwned:
   for(const stk::mesh::Bucket* bptr : buckets) {
     const stk::mesh::Bucket & b = *bptr;
@@ -313,7 +313,7 @@ TpetraLinearSystem::beginLinearSystemConstruction()
       sharedPids_.push_back(owner);
     }
   }
-  
+
   const Teuchos::RCP<LinSys::Comm> tpetraComm = Teuchos::rcp(new LinSys::Comm(bulkData.parallel()));
   ownedRowsMap_ = Teuchos::rcp(new LinSys::Map(Teuchos::OrdinalTraits<Tpetra::global_size_t>::invalid(), ownedGids, 1, tpetraComm, node_));
   sharedNotOwnedRowsMap_ = Teuchos::rcp(new LinSys::Map(Teuchos::OrdinalTraits<Tpetra::global_size_t>::invalid(), sharedNotOwnedGids, 1, tpetraComm, node_));
@@ -376,7 +376,7 @@ TpetraLinearSystem::buildNodeGraph(const stk::mesh::PartVector & parts)
 //if (realm_.bulk_data().parallel_rank()==0) std::cerr<<"buildNodeGraph"<<std::endl;
 
   const stk::mesh::Selector s_owned = metaData.locally_owned_part()
-    & stk::mesh::selectUnion(parts) 
+    & stk::mesh::selectUnion(parts)
     & !(stk::mesh::selectUnion(realm_.get_slave_part_vector()))
     & !(realm_.get_inactive_selector());
 
@@ -398,7 +398,7 @@ void TpetraLinearSystem::buildConnectedNodeGraph(stk::mesh::EntityRank rank,
   stk::mesh::MetaData & metaData = realm_.meta_data();
 
   const stk::mesh::Selector s_owned = metaData.locally_owned_part()
-                                      & stk::mesh::selectUnion(parts) 
+                                      & stk::mesh::selectUnion(parts)
                                       & !(realm_.get_inactive_selector());
 
   stk::mesh::BucketVector const& buckets = realm_.get_buckets( rank, s_owned );
@@ -445,7 +445,7 @@ TpetraLinearSystem::buildReducedElemToNodeGraph(const stk::mesh::PartVector & pa
 //if (realm_.bulk_data().parallel_rank()==0) std::cerr<<"buildReducedElemToNodeGraph"<<std::endl;
 
   const stk::mesh::Selector s_owned = metaData.locally_owned_part()
-    & stk::mesh::selectUnion(parts) 
+    & stk::mesh::selectUnion(parts)
     & !(realm_.get_inactive_selector());
 
   stk::mesh::BucketVector const& buckets =
@@ -487,7 +487,7 @@ TpetraLinearSystem::buildFaceElemToNodeGraph(const stk::mesh::PartVector & parts
   stk::mesh::MetaData & metaData = realm_.meta_data();
 
   const stk::mesh::Selector s_owned = metaData.locally_owned_part()
-    & stk::mesh::selectUnion(parts) 
+    & stk::mesh::selectUnion(parts)
     & !(realm_.get_inactive_selector());
 
   stk::mesh::BucketVector const& face_buckets =
@@ -538,29 +538,29 @@ TpetraLinearSystem::buildNonConformalNodeGraph(const stk::mesh::PartVector &part
         // extract current/opposing element
         stk::mesh::Entity currentElement = dgInfo->currentElement_;
         stk::mesh::Entity opposingElement = dgInfo->opposingElement_;
-        
+
         // node relations; current and opposing
         stk::mesh::Entity const* current_elem_node_rels = bulkData.begin_nodes(currentElement);
         const int current_num_elem_nodes = bulkData.num_nodes(currentElement);
         stk::mesh::Entity const* opposing_elem_node_rels = bulkData.begin_nodes(opposingElement);
         const int opposing_num_elem_nodes = bulkData.num_nodes(opposingElement);
-        
+
         // resize based on both current and opposing face node size
         entities.resize(current_num_elem_nodes+opposing_num_elem_nodes);
-        
+
         // fill in connected nodes; current
         //KOKKOS: nested Loop parallel
         for ( int ni = 0; ni < current_num_elem_nodes; ++ni ) {
           entities[ni] = current_elem_node_rels[ni];
         }
-        
+
         // fill in connected nodes; opposing
         //KOKKOS: nested Loop parallel
         for ( int ni = 0; ni < opposing_num_elem_nodes; ++ni ) {
           entities[current_num_elem_nodes+ni] = opposing_elem_node_rels[ni];
         }
-        
-        // okay, now add the connections; will be symmetric 
+
+        // okay, now add the connections; will be symmetric
         // columns of current node row (opposing nodes) will add columns to opposing nodes row
         addConnections(entities.data(), entities.size());
       }
@@ -597,7 +597,7 @@ TpetraLinearSystem::buildOversetNodeGraph(const stk::mesh::PartVector &parts)
     const size_t numNodes = bulkData.num_nodes(owningElement);
     const size_t numEntities = numNodes+1;
     entities.resize(numEntities);
-    
+
     entities[0] = orphanNode;
     for(size_t n=0; n < numNodes; ++n) {
       entities[n+1] = elem_nodes[n];
@@ -618,9 +618,9 @@ TpetraLinearSystem::copy_stk_to_tpetra(
   stk::mesh::BulkData & bulkData = realm_.bulk_data();
   stk::mesh::MetaData & metaData = realm_.meta_data();
 
-  const stk::mesh::Selector selector = stk::mesh::selectField(*stkField) 
-    & metaData.locally_owned_part() 
-    & !(stk::mesh::selectUnion(realm_.get_slave_part_vector())) 
+  const stk::mesh::Selector selector = stk::mesh::selectField(*stkField)
+    & metaData.locally_owned_part()
+    & !(stk::mesh::selectUnion(realm_.get_slave_part_vector()))
     & !(realm_.get_inactive_selector());
 
   stk::mesh::BucketVector const& buckets = bulkData.get_buckets(stk::topology::NODE_RANK, selector);
@@ -664,10 +664,10 @@ void sort_connections(std::vector<std::vector<stk::mesh::Entity> >& connections)
 template<typename ViewType, typename LocalOrdinal>
 void add_to_length(ViewType& v_owned, ViewType& v_shared, unsigned numDof,
                    LocalOrdinal lid_a, LocalOrdinal maxOwnedRowId, bool a_owned, unsigned numColEntities)
-{   
+{
     ViewType& v_a = a_owned ? v_owned : v_shared;
     LocalOrdinal lid = a_owned ? lid_a : lid_a - maxOwnedRowId;
-    
+
     for (unsigned d=0; d < numDof; ++d) {
       v_a(lid+d) += numDof*numColEntities;
     }
@@ -681,11 +681,11 @@ void add_lengths_to_comm(const stk::mesh::BulkData& bulk,
                          unsigned numColEntities,
                          const stk::mesh::EntityId* colEntityIds,
                          const int* colOwners)
-{   
+{
     int owner = entity_a_owner;
     stk::CommBufferV& sbuf = commNeighbors.send_buffer(owner);
     GlobalOrdinal rowGid = GID_(entityId_a, numDof , 0);
-    
+
     sbuf.pack(rowGid);
     sbuf.pack(numColEntities*2);
     for(unsigned c=0; c<numColEntities; ++c) {
@@ -703,10 +703,10 @@ void communicate_remote_columns(const stk::mesh::BulkData& bulk,
                                 const Teuchos::RCP<LinSys::Map>& ownedRowsMap,
                                 ViewType& deviceLocallyOwnedRowLengths,
                                 std::set<std::pair<int,GlobalOrdinal> >& communicatedColIndices)
-{   
+{
     commNeighbors.communicate();
-    
-    for(int p : neighborProcs) { 
+
+    for(int p : neighborProcs) {
         stk::CommBufferV& rbuf = commNeighbors.recv_buffer(p);
         size_t bufSize = rbuf.size_in_bytes();
         while(rbuf.size_in_bytes() > 0) {
@@ -737,7 +737,7 @@ void communicate_remote_columns(const stk::mesh::BulkData& bulk,
 }
 
 size_t get_neighbor_index(const std::vector<int>& neighborProcs, int proc)
-{   
+{
     std::vector<int>::const_iterator neighbor = std::find(neighborProcs.begin(), neighborProcs.end(), proc);
     ThrowRequireMsg(neighbor != neighborProcs.end(),"Error, failed to find p="<<proc<<" in neighborProcs.");
 
@@ -750,14 +750,14 @@ TpetraLinearSystem::compute_send_lengths(const std::vector<stk::mesh::Entity>& r
         const std::vector<std::vector<stk::mesh::Entity> >& connections,
                           const std::vector<int>& neighborProcs,
                           stk::CommNeighbors& commNeighbors)
-{ 
+{
   const stk::mesh::BulkData& bulk = realm_.bulk_data();
   std::vector<int> sendLengths(neighborProcs.size(), 0);
   size_t maxColEntities = 128;
   std::vector<stk::mesh::EntityId> colEntityIds(maxColEntities);
-  
+
   for(size_t i=0; i<rowEntities.size(); ++i)
-  { 
+  {
     const stk::mesh::Entity entity_a = rowEntities[i];
     const std::vector<stk::mesh::Entity>& colEntities = connections[i];
     unsigned numColEntities = colEntities.size();
@@ -765,17 +765,17 @@ TpetraLinearSystem::compute_send_lengths(const std::vector<stk::mesh::Entity>& r
     for(size_t j=0; j<colEntities.size(); ++j) {
       colEntityIds[j] = *stk::mesh::field_data(*realm_.naluGlobalId_, colEntities[j]);
     }
-    
-    const stk::mesh::EntityId entityId_a = *stk::mesh::field_data(*realm_.naluGlobalId_, entity_a);  
+
+    const stk::mesh::EntityId entityId_a = *stk::mesh::field_data(*realm_.naluGlobalId_, entity_a);
     const int entity_a_status = getDofStatus(entity_a);
     const bool entity_a_shared = entity_a_status & DS_SharedNotOwnedDOF;
-    
+
     if (entity_a_shared) {
         stk::mesh::Entity master = get_entity_master(bulk, entity_a, entityId_a);
         size_t idx = get_neighbor_index(neighborProcs, bulk.parallel_owner_rank(master));
         sendLengths[idx] += (1+numColEntities)*(sizeof(GlobalOrdinal)+sizeof(int));
     }
-    
+
     for(size_t ii=0; ii<numColEntities; ++ii) {
         const stk::mesh::Entity entity_b = colEntities[ii];
         if (entity_b == entity_a) {
@@ -789,9 +789,9 @@ TpetraLinearSystem::compute_send_lengths(const std::vector<stk::mesh::Entity>& r
             size_t idx = get_neighbor_index(neighborProcs, bulk.parallel_owner_rank(master));
             sendLengths[idx] += (1+numColEntities)*(sizeof(GlobalOrdinal)+sizeof(int));
         }
-    } 
+    }
   }
-  
+
   for(size_t i=0; i<neighborProcs.size(); ++i) {
     stk::CommBufferV& sbuf = commNeighbors.send_buffer(neighborProcs[i]);
     sbuf.reserve(sendLengths[i]);
@@ -883,7 +883,7 @@ TpetraLinearSystem::insert_graph_connections(const std::vector<stk::mesh::Entity
   unsigned max = 128;
   std::vector<int> dofStatus(max);
   std::vector<LocalOrdinal> localDofs_b(max);
- 
+
   //KOKKOS: Loop noparallel Graph insert
   for(size_t i=0; i<rowEntities.size(); ++i) {
     const std::vector<stk::mesh::Entity>& entities_b = connections[i];
@@ -991,12 +991,12 @@ TpetraLinearSystem::fill_entity_to_col_LID_mapping()
 
 void
 TpetraLinearSystem::storeOwnersForShared()
-{ 
+{
   const stk::mesh::BulkData & bulkData = realm_.bulk_data();
   const stk::mesh::MetaData & metaData = realm_.meta_data();
   const stk::mesh::Selector all = metaData.universal_part() & !(realm_.get_inactive_selector());
   const stk::mesh::BucketVector& buckets = realm_.get_buckets( stk::topology::NODE_RANK, all );
-  
+
   for(const stk::mesh::Bucket* bptr : buckets) {
     const stk::mesh::Bucket& bkt = *bptr;
     for(stk::mesh::Entity node : bkt) {
@@ -1022,7 +1022,7 @@ void add_procs_to_neighbors(const std::vector<int>& procs, std::vector<int>& nei
 void fill_neighbor_procs(std::vector<int>& neighborProcs,
                          const stk::mesh::BulkData& bulk,
                          const Realm& realm)
-{   
+{
   if (bulk.parallel_size() > 1) {
     neighborProcs = bulk.all_sharing_procs(stk::topology::NODE_RANK);
     if (bulk.is_automatic_aura_on()) {
@@ -1049,18 +1049,18 @@ void fill_owned_and_shared_then_nonowned_ordered_by_proc(std::vector<GlobalOrdin
                                     const Teuchos::RCP<LinSys::Map>& sharedNotOwnedRowsMap,
                                     const std::set<std::pair<int,GlobalOrdinal> >& ownersAndGids,
                                     const std::vector<int>& sharedPids)
-{ 
+{
   auto ownedIndices = ownedRowsMap->getMyGlobalIndices();
   totalGids.clear();
   totalGids.reserve(ownedIndices.size() + ownersAndGids.size());
-  
+
   srcPids.clear();
   srcPids.reserve(ownersAndGids.size());
 
   for(unsigned i=0; i<ownedIndices.size(); ++i) {
     totalGids.push_back(ownedIndices[i]);
   }
-  
+
   auto sharedIndices = sharedNotOwnedRowsMap->getMyGlobalIndices();
   for(unsigned i=0; i<sharedIndices.size(); ++i) {
     totalGids.push_back(sharedIndices[i]);
@@ -1090,16 +1090,16 @@ void fill_owned_and_shared_then_nonowned_ordered_by_proc(std::vector<GlobalOrdin
 void verify_same_except_sort_order(const std::vector<GlobalOrdinal>& vec1, const std::string& vec1name,
                                    const std::vector<GlobalOrdinal>& vec2, const std::string& vec2name,
                                    int localProc)
-{ 
+{
   std::vector<GlobalOrdinal> svec1(vec1);
   std::vector<GlobalOrdinal> svec2(vec2);
-  
+
   std::sort(svec1.begin(), svec1.end());
   std::sort(svec2.begin(), svec2.end());
-    
+
   std::vector<GlobalOrdinal> vec1NotInVec2;
   std::vector<GlobalOrdinal> vec2NotInVec1;
-  
+
   for(GlobalOrdinal gid : vec1) {
     if (!std::binary_search(svec2.begin(), svec2.end(), gid)) {
       vec1NotInVec2.push_back(gid);
@@ -1126,7 +1126,7 @@ void verify_same_except_sort_order(const std::vector<GlobalOrdinal>& vec1, const
     oss<<std::endl;
     std::cerr<<oss.str();
   }
-  
+
   ThrowRequireMsg(vec1.size() == vec1.size() && vec1NotInVec2.empty() && vec2NotInVec1.empty() && !foundDuplicates,
                   "P"<<localProc<<", failed to verify "<<vec1name<<" against "<<vec2name);
 }
@@ -1299,7 +1299,7 @@ TpetraLinearSystem::finalizeLinearSystem()
   remove_invalid_indices(ownedGraph, ownedRowLengths);
 
   sharedNotOwnedGraph_ = Teuchos::rcp(new LinSys::Graph(sharedNotOwnedRowsMap_, totalColsMap_, sharedNotOwnedRowLengths, Tpetra::StaticProfile));
- 
+
   ownedGraph_ = Teuchos::rcp(new LinSys::Graph(ownedRowsMap_, totalColsMap_, locallyOwnedRowLengths, Tpetra::StaticProfile));
 
   ownedGraph_->setAllIndices(ownedGraph.rowPointers, ownedGraph.colIndices);
@@ -1331,7 +1331,7 @@ TpetraLinearSystem::finalizeLinearSystem()
 
   const int nDim = metaData.spatial_dimension();
 
-  Teuchos::RCP<LinSys::MultiVector> coords 
+  Teuchos::RCP<LinSys::MultiVector> coords
     = Teuchos::RCP<LinSys::MultiVector>(new LinSys::MultiVector(sln_->getMap(), nDim));
 
   TpetraLinearSolver *linearSolver = reinterpret_cast<TpetraLinearSolver *>(linearSolver_);
@@ -1340,7 +1340,18 @@ TpetraLinearSystem::finalizeLinearSystem()
   if (linearSolver->activeMueLu())
     copy_stk_to_tpetra(coordinates, coords);
 
-  linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
+  if(linearSolver->getType() == PT_TPETRA_SEGREGATED) {
+    std::cout << "Segregated solver called, a segregated system needs to be formed!" << std::endl;
+    std::cout << "Original system has " << numDof_ << " dofs per node." << std::endl;
+    Teuchos::RCP<LinSys::Matrix> segregatedMatrix;
+    Teuchos::RCP<LinSys::MultiVector> segregatedRhs, segregatedSln;
+    segregateProblem(ownedMatrix_, ownedRhs_, sln_, segregatedMatrix, segregatedRhs, segregatedSln);
+    std::cout << "segregatedRhs->numVectors=" << segregatedRhs->getNumVectors() << std::endl;
+    // linearSolver->setupLinearSolver(segregatedSln, segregatedMatrix, segregatedRhs, coords);
+    linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
+  } else if(linearSolver->getType() == PT_TPETRA) {
+    linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
+  }
 }
 
 void
@@ -1579,10 +1590,10 @@ TpetraLinearSystem::applyDirichletBCs(
 
   double adbc_time = -NaluEnv::self().nalu_time();
 
-  const stk::mesh::Selector selector 
+  const stk::mesh::Selector selector
     = (metaData.locally_owned_part() | metaData.globally_shared_part())
     & stk::mesh::selectUnion(parts)
-    & stk::mesh::selectField(*solutionField) 
+    & stk::mesh::selectField(*solutionField)
     & !(realm_.get_inactive_selector());
 
   stk::mesh::BucketVector const& buckets =
@@ -1672,11 +1683,11 @@ TpetraLinearSystem::prepareConstraints(
       const LocalOrdinal actualLocalId = useOwned ? localId : localId - maxOwnedRowId_;
       Teuchos::RCP<LinSys::Matrix> matrix = useOwned ? ownedMatrix_ : sharedNotOwnedMatrix_;
       const LinSys::Matrix::local_matrix_type& local_matrix = matrix->getLocalMatrix();
-      
+
       if ( localId > maxSharedNotOwnedRowId_) {
         throw std::runtime_error("logic error: localId > maxSharedNotOwnedRowId_");
       }
-      
+
       // Adjust the LHS; full row is perfectly zero
       matrix->getLocalRowView(actualLocalId, indices, values);
       const size_t rowLength = values.size();
@@ -1687,7 +1698,7 @@ TpetraLinearSystem::prepareConstraints(
         }
         local_matrix.replaceValues(actualLocalId, &indices[0], rowLength, new_values.data(), internalMatrixIsSorted);
       }
-      
+
       // Replace the RHS residual with zero
       Teuchos::RCP<LinSys::Vector> rhs = useOwned ? ownedRhs_: sharedNotOwnedRhs_;
       const double bc_residual = 0.0;
@@ -1780,7 +1791,7 @@ TpetraLinearSystem::solve(
       throw std::runtime_error("ERROR checkForZeroRow in solve()");
     }
   }
-   
+
   if (linearSolver->getConfig()->getWriteMatrixFiles()) {
     writeToFile(eqSysName_.c_str());
     writeToFile(eqSysName_.c_str(), false);
@@ -1790,7 +1801,7 @@ TpetraLinearSystem::solve(
 
   int iters;
   double finalResidNorm;
-  
+
   // memory diagnostic
   if ( realm_.get_activate_memory_diagnostic() ) {
     NaluEnv::self().naluOutputP0() << "NaluMemory::TpetraLinearSystem::solve() PreSolve: " << eqSysName_ << std::endl;
@@ -1820,7 +1831,7 @@ TpetraLinearSystem::solve(
   linearSolveIterations_ = iters;
   nonLinearResidual_ = realm_.l2Scaling_*norm2;
   linearResidual_ = finalResidNorm;
-   
+
   if ( eqSys_->firstTimeStepSolve_ )
     firstNonLinearResidual_ = nonLinearResidual_;
   scaledNonLinearResidual_ = nonLinearResidual_/std::max(std::numeric_limits<double>::epsilon(), firstNonLinearResidual_);
@@ -1957,6 +1968,112 @@ TpetraLinearSystem::checkForZeroRow(bool useOwned, bool doThrow, bool doPrint)
     throw std::runtime_error("bad zero row LHS");
   }
   return found;
+}
+
+void
+TpetraLinearSystem::segregateProblem(Teuchos::RCP<LinSys::Matrix> inputMatrix,
+                                     Teuchos::RCP<LinSys::Vector> inputRhs,
+                                     Teuchos::RCP<LinSys::Vector> inputSln,
+                                     Teuchos::RCP<LinSys::Matrix>& segregatedMatrix,
+                                     Teuchos::RCP<LinSys::MultiVector>& segregatedRhs,
+                                     Teuchos::RCP<LinSys::MultiVector>& segregatedSln)
+{
+  // Step 1: do some checks to make sure we can segregate the matrix properly
+  const Tpetra::global_size_t globalNumRows    = inputMatrix->getGlobalNumRows();
+  const size_t                localNumRows     = inputMatrix->getNodeNumRows();
+  const size_t                localNumCols     = inputMatrix->getNodeNumCols();
+  const Tpetra::global_size_t globalNumEntries = inputMatrix->getGlobalNumEntries();
+  const size_t                localNumEntries  = inputMatrix->getNodeNumEntries();
+
+  if(globalNumRows % numDof_ > 0) {std::cout << "segregateMatrix: globalNumRows in input matrix is not divisible by numDofs_!" << std::endl;}
+  if(localNumRows  % numDof_ > 0) {std::cout << "segregateMatrix: localNumRows in input matrix is not divisible by numDofs_!" << std::endl;}
+  if(globalNumEntries % (numDof_*numDof_) > 0) {std::cout << "segregateMatrix: globalNumEntries in input matrix is not divisible by numDofs_*numDofs_!" << std::endl;}
+  if(localNumEntries  % (numDof_*numDof_) > 0) {std::cout << "segregateMatrix: localNumEntries in input matrix is not divisible by numDofs_*numDofs_!" << std::endl;}
+
+  const size_t segregatedLocalNumRows    = localNumRows  / numDof_;
+  const size_t segregatedLocalNumEntries = localNumEntries / (numDof_*numDof_);
+
+  // Step 2: create some segregated maps
+  Teuchos::RCP<LinSys::Map> segregatedRowMap;
+  segregateMap(inputMatrix->getCrsGraph()->getRowMap(), segregatedRowMap);
+  Teuchos::RCP<LinSys::Map> segregatedColMap;
+  segregateMap(inputMatrix->getCrsGraph()->getColMap(), segregatedColMap);
+  Teuchos::RCP<LinSys::Map> segregatedRangeMap;
+  segregateMap(inputMatrix->getCrsGraph()->getRangeMap(), segregatedRangeMap);
+  Teuchos::RCP<LinSys::Map> segregatedDomainMap;
+  segregateMap(inputMatrix->getCrsGraph()->getDomainMap(), segregatedDomainMap);
+
+  // Step 3: construct CrsMatrix, Rhs and Sln
+  segregatedMatrix = Teuchos::rcp(new LinSys::Matrix(segregatedRowMap,
+                                                     segregatedColMap,
+                                                     0,
+                                                     Tpetra::StaticProfile));
+  segregatedRhs = Teuchos::rcp(new LinSys::MultiVector(segregatedRowMap, numDof_));
+  segregatedSln = Teuchos::rcp(new LinSys::MultiVector(segregatedRowMap, numDof_));
+
+  // Step 4: create the rowPtrs, colInds and values for segregated CrsMatrix
+  Teuchos::ArrayRCP<const size_t> rowPtrs;
+  Teuchos::ArrayRCP<const LinSys::Graph::local_ordinal_type> colInds;
+  Teuchos::ArrayRCP<const LinSys::Matrix::scalar_type> values;
+  inputMatrix->getAllValues(rowPtrs, colInds, values);
+  Teuchos::ArrayRCP<const LinSys::Matrix::scalar_type> inputRhsData = inputRhs->getData();
+  Teuchos::ArrayRCP<const LinSys::Matrix::scalar_type> inputSlnData = inputSln->getData();
+
+  Teuchos::ArrayRCP<size_t> segregatedRowPtrs(segregatedLocalNumRows + 1);
+  Teuchos::ArrayRCP<LinSys::Graph::local_ordinal_type> segregatedColInds(segregatedLocalNumEntries);
+  Teuchos::ArrayRCP<LinSys::Matrix::scalar_type> segregatedValues(segregatedLocalNumEntries);
+  Teuchos::Array<Teuchos::ArrayRCP<LinSys::Matrix::scalar_type> > segregatedRhsData(numDof_);
+  Teuchos::Array<Teuchos::ArrayRCP<LinSys::Matrix::scalar_type> > segregatedSlnData(numDof_);
+  for(size_t dof = 0; dof < numDof_; ++dof) {
+    segregatedRhsData[dof] = segregatedRhs->getDataNonConst(dof);
+    segregatedSlnData[dof] = segregatedSln->getDataNonConst(dof);
+  }
+
+  LinSys::Map::local_ordinal_type numEntriesInRow = 0;
+  for(size_t rowIdx = 0; rowIdx < segregatedLocalNumRows; ++rowIdx) {
+    numEntriesInRow = (rowPtrs[rowIdx*numDof_ + 1] - rowPtrs[rowIdx*numDof_]) / numDof_;
+
+    // Load CrsMatrix data
+    segregatedRowPtrs[rowIdx + 1] = segregatedRowPtrs[rowIdx] + numEntriesInRow;
+    for(LinSys::Map::local_ordinal_type entryIdx = 0; entryIdx < numEntriesInRow; ++entryIdx) {
+      segregatedColInds[segregatedRowPtrs[rowIdx] + entryIdx]
+        = colInds[rowPtrs[rowIdx*numDof_] + entryIdx*numDof_] / numDof_;
+      segregatedValues[segregatedRowPtrs[rowIdx] + entryIdx]
+        = values[rowPtrs[rowIdx*numDof_] + entryIdx*numDof_];
+      if( (colInds[rowPtrs[rowIdx*numDof_] + entryIdx*numDof_] / numDof_) >= (localNumCols / numDof_) ) {
+        std::cout << "In row " << rowIdx << ", column index " << entryIdx << " has column id "
+                  << colInds[rowPtrs[rowIdx*numDof_] + entryIdx*numDof_] / numDof_
+                  << " larger than localNumCols: " << localNumCols / numDof_ << std::endl;
+      }
+    }
+
+    // Load MultiVector data
+    for(size_t dof = 0; dof < numDof_; ++dof) {
+      segregatedRhsData[dof][rowIdx] = inputRhsData[rowIdx*numDof_ + dof];
+      segregatedSlnData[dof][rowIdx] = inputSlnData[rowIdx*numDof_ + dof];
+    }
+  }
+
+  // Step 5: construct and fillComplete segregated CrsMatrix
+  segregatedMatrix->setAllValues(segregatedRowPtrs, segregatedColInds, segregatedValues);
+  segregatedMatrix->expertStaticFillComplete(segregatedDomainMap, segregatedRangeMap);
+}
+
+void
+TpetraLinearSystem::segregateMap(Teuchos::RCP<const LinSys::Map> inputMap,
+                                 Teuchos::RCP<LinSys::Map>& segregatedMap)
+{
+  Teuchos::ArrayView<const typename LinSys::Map::global_ordinal_type> ownedRowGIDs = inputMap()->getNodeElementList();
+  const typename LinSys::Map::local_ordinal_type numLocalRows = ownedRowGIDs.size() / numDof_;
+  Teuchos::ArrayRCP<typename LinSys::Map::global_ordinal_type> segregatedOwnedRowGIDs(numLocalRows);
+  for(typename LinSys::Map::local_ordinal_type idx = 0; idx < numLocalRows; ++idx) {
+    segregatedOwnedRowGIDs[idx] = ownedRowGIDs[numDof_*idx];
+  }
+  segregatedMap = Teuchos::rcp(new LinSys::Map(inputMap->getGlobalNumElements() / numDof_,
+                                               segregatedOwnedRowGIDs(),
+                                               inputMap->getIndexBase(),
+                                               inputMap->getComm(),
+                                               inputMap->getNode()));
 }
 
 void
@@ -2124,10 +2241,10 @@ TpetraLinearSystem::copy_tpetra_to_stk(
   const unsigned p_rank = bulkData.parallel_rank();
 
   const stk::mesh::Selector selector = stk::mesh::selectField(*stkField)
-    & metaData.locally_owned_part() 
+    & metaData.locally_owned_part()
     & !(stk::mesh::selectUnion(realm_.get_slave_part_vector()))
     & !(realm_.get_inactive_selector());
-  
+
   stk::mesh::BucketVector const& buckets =
     realm_.get_buckets(stk::topology::NODE_RANK, selector);
 
