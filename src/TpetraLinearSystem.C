@@ -1340,29 +1340,7 @@ TpetraLinearSystem::finalizeLinearSystem()
   if (linearSolver->activeMueLu())
     copy_stk_to_tpetra(coordinates, coords);
 
-  Teuchos::Array<LinSys::Scalar> normRhsOrig(1), normSlnOrig(1);
-  ownedRhs_->norm2(normRhsOrig());
-  sln_->norm2(normSlnOrig());
-  std::cout << "ownedRhs->norm2(): " << normRhsOrig << ", sln_->norm2(): " << normSlnOrig << std::endl;
-  if(linearSolver->getType() == PT_TPETRA_SEGREGATED) {
-    std::cout << "Segregated solver called, a segregated system needs to be formed!" << std::endl;
-    std::cout << "Original system has " << numDof_ << " dofs per node." << std::endl;
-    Teuchos::RCP<LinSys::Matrix> segregatedMatrix;
-    Teuchos::RCP<LinSys::MultiVector> segregatedRhs, segregatedSln;
-    segregateProblem(ownedMatrix_, ownedRhs_, sln_, segregatedMatrix, segregatedRhs, segregatedSln);
-    std::cout << "segregatedRhs->numVectors=" << segregatedRhs->getNumVectors() << std::endl;
-    Teuchos::Array<LinSys::Scalar> normRhs(numDof_), normSln(numDof_);
-    segregatedRhs->norm2(normRhs());
-    segregatedSln->norm2(normSln());
-    std::cout << "segregatedRhs->norm2(): " << normRhs << ", segregatedSln->norm2(): " << normSln << std::endl;
-    linearSolver->setupLinearSolver(segregatedSln, segregatedMatrix, segregatedRhs, coords);
-    // int iters;
-    // double norm;
-    // linearSolver->solve(sln_, iters, norm, true);
-    // linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
-  } else if(linearSolver->getType() == PT_TPETRA) {
-    linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
-  }
+  linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
 }
 
 void
@@ -1598,6 +1576,7 @@ TpetraLinearSystem::applyDirichletBCs(
   const unsigned endPos)
 {
   stk::mesh::MetaData & metaData = realm_.meta_data();
+  std::cout << "Applying dirichlet BCs to problem" << std::endl;
 
   double adbc_time = -NaluEnv::self().nalu_time();
 
@@ -1769,6 +1748,7 @@ TpetraLinearSystem::resetRows(
 void
 TpetraLinearSystem::loadComplete()
 {
+  std::cout << "Do loadComplete()" << std::endl;
   // LHS
   Teuchos::RCP<Teuchos::ParameterList> params = Teuchos::parameterList ();
   params->set("No Nonlocal Changes", true);
@@ -1808,6 +1788,31 @@ TpetraLinearSystem::solve(
     writeToFile(eqSysName_.c_str(), false);
   }
 
+  Teuchos::Array<LinSys::Scalar> normRhsOrig(1), normSlnOrig(1);
+  ownedRhs_->norm2(normRhsOrig());
+  sln_->norm2(normSlnOrig());
+  std::cout << "ownedRhs->norm2(): " << normRhsOrig << ", sln_->norm2(): " << normSlnOrig << std::endl;
+  if(linearSolver->getType() == PT_TPETRA_SEGREGATED) {
+    const int numDim = realm_.meta_data().spatial_dimension();
+    std::cout << "Segregated solver called, a segregated system needs to be formed!" << std::endl;
+    std::cout << "Original system has " << numDof_ << " dofs per node and " << numDim << " spatial dimensions." << std::endl;
+
+    Teuchos::RCP<LinSys::Matrix> segregatedMatrix;
+    Teuchos::RCP<LinSys::MultiVector> segregatedRhs, segregatedSln;
+    segregateProblem(ownedMatrix_, ownedRhs_, sln_, segregatedMatrix, segregatedRhs, segregatedSln);
+
+    // Create fake coordinates...
+    Teuchos::RCP<LinSys::MultiVector> coords
+      = Teuchos::RCP<LinSys::MultiVector>(new LinSys::MultiVector(segregatedSln->getMap(), numDim));
+
+    std::cout << "segregatedRhs->numVectors=" << segregatedRhs->getNumVectors() << std::endl;
+    Teuchos::Array<LinSys::Scalar> normRhs(numDof_), normSln(numDof_);
+    segregatedRhs->norm2(normRhs());
+    segregatedSln->norm2(normSln());
+    std::cout << "segregatedRhs->norm2(): " << normRhs << ", segregatedSln->norm2(): " << normSln << std::endl;
+    linearSolver->setupLinearSolver(segregatedSln, segregatedMatrix, segregatedRhs, coords);
+  }
+
   double solve_time = -NaluEnv::self().nalu_time();
 
   int iters;
@@ -1819,11 +1824,7 @@ TpetraLinearSystem::solve(
     realm_.provide_memory_summary();
   }
 
-  const int status = linearSolver->solve(
-      sln_,
-      iters,
-      finalResidNorm,
-      realm_.isFinalOuterIter_);
+  const int status = linearSolver->solve(sln_, iters, finalResidNorm, realm_.isFinalOuterIter_);
 
   solve_time += NaluEnv::self().nalu_time();
 
