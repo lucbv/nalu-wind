@@ -56,9 +56,9 @@ TpetraLinearSolver::TpetraLinearSolver(
   LinearSolvers *linearSolvers)
   : LinearSolver(solverName,linearSolvers, config),
     params_(params),
+    useSegregatedSolver_(config->useSegregatedSolver()),
     paramsPrecond_(paramsPrecond),
-    preconditionerType_(config->preconditioner_type()),
-    useSegregatedSolver_(config->useSegregatedSolver())
+    preconditionerType_(config->preconditioner_type())
 {
   activateMueLu_ = config->use_MueLu();
 }
@@ -71,7 +71,7 @@ TpetraLinearSolver::~TpetraLinearSolver()
 void
 TpetraLinearSolver::setSystemObjects(
       Teuchos::RCP<LinSys::Matrix> matrix,
-      Teuchos::RCP<LinSys::Vector> rhs)
+      Teuchos::RCP<LinSys::MultiVector> rhs)
 {
   ThrowRequire(!matrix.is_null());
   ThrowRequire(!rhs.is_null());
@@ -81,9 +81,9 @@ TpetraLinearSolver::setSystemObjects(
 }
 
 void TpetraLinearSolver::setupLinearSolver(
-  Teuchos::RCP<LinSys::Vector> sln,
+  Teuchos::RCP<LinSys::MultiVector> sln,
   Teuchos::RCP<LinSys::Matrix> matrix,
-  Teuchos::RCP<LinSys::Vector> rhs,
+  Teuchos::RCP<LinSys::MultiVector> rhs,
   Teuchos::RCP<LinSys::MultiVector> coords)
 {
 
@@ -151,9 +151,10 @@ void TpetraLinearSolver::setMueLu()
   solver_->setProblem(problem_);
 }
 
-int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::Vector> sln, double& norm)
+int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiVector> sln, double& norm)
 {
-  LinSys::Vector resid(rhs_->getMap());
+  Teuchos::RCP<LinSys::MultiVector> solution = problem_->getLHS();
+  LinSys::MultiVector resid(rhs_->getMap(), rhs_->getNumVectors());
   ThrowRequire(! (sln.is_null()  || rhs_.is_null() ) );
 
   if (matrix_->isFillActive() )
@@ -162,18 +163,53 @@ int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::Vector
     //!matrix_->fillComplete(map_, map_);
     throw std::runtime_error("residual_norm");
   }
-  matrix_->apply(*sln, resid);
+  matrix_->apply(*solution, resid);
 
   resid.update(-1.0, *rhs_, 1.0);
 
-  if ( whichNorm == 0 )
-    norm = resid.normInf();
-  else if ( whichNorm == 1 )
-    norm = resid.norm1();
-  else if ( whichNorm == 2 )
-    norm = resid.norm2();
-  else
+  Teuchos::Array<LinSys::Scalar> norms(rhs_->getNumVectors());
+  norm = 0.0;
+
+  if ( whichNorm == 0 ) {
+    resid.normInf(norms());
+    for(size_t vecIdx = 0; vecIdx < solution->getNumVectors(); ++vecIdx) {
+      norm = (norm < norms[vecIdx]) ? norms[vecIdx] : norm;
+    }
+  } else if ( whichNorm == 1 ) {
+    resid.norm1(norms());
+    for(size_t vecIdx = 0; vecIdx < solution->getNumVectors(); ++vecIdx) {
+      norm += norms[vecIdx];
+    }
+  } else if ( whichNorm == 2 ) {
+    resid.norm2(norms());
+    for(size_t vecIdx = 0; vecIdx < solution->getNumVectors(); ++vecIdx) {
+      norm += norms[vecIdx]*norms[vecIdx];
+    }
+    norm = std::sqrt(norm);
+  } else {
     return 1;
+  }
+
+  if(useSegregatedSolver_) {
+    // We need to unroll the solution from the segregated format to the flat format
+    const size_t numVectors = solution->getNumVectors();
+    ThrowRequire(sln->getLocalLength() == solution->getLocalLength()*numVectors);
+
+    // First extract data from sln and solution
+    Teuchos::ArrayRCP<LinSys::Scalar> slnData = sln->getDataNonConst(0);
+    Teuchos::Array<Teuchos::ArrayRCP<const LinSys::Scalar> > solutionData(numVectors);
+    for(size_t colIdx = 0; colIdx < numVectors; ++colIdx) {
+      solutionData[colIdx] = solution->getDataNonConst(colIdx);
+    }
+
+    for(size_t nodeIdx = 0; nodeIdx < solution->getLocalLength(); ++nodeIdx) {
+      for(size_t vectorIdx = 0; vectorIdx < numVectors; ++vectorIdx) {
+        slnData[nodeIdx*numVectors + vectorIdx] = solutionData[vectorIdx][nodeIdx];
+      }
+    }
+  } else {
+    sln = solution;
+  }
 
   return 0;
 }
@@ -181,7 +217,7 @@ int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::Vector
 
 int
 TpetraLinearSolver::solve(
-  Teuchos::RCP<LinSys::Vector> sln,
+  Teuchos::RCP<LinSys::MultiVector> sln,
   int & iters,
   double & finalResidNrm,
   bool isFinalOuterIter)

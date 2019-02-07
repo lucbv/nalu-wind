@@ -73,10 +73,10 @@ LinearSystem::LinearSystem(
 
 void LinearSystem::zero_timer_precond()
 {
-  linearSolver_->zero_timer_precond();  
+  linearSolver_->zero_timer_precond();
 }
 
-double LinearSystem::get_timer_precond() 
+double LinearSystem::get_timer_precond()
 {
   return linearSolver_->get_timer_precond();
 }

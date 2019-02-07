@@ -1340,6 +1340,10 @@ TpetraLinearSystem::finalizeLinearSystem()
   if (linearSolver->activeMueLu())
     copy_stk_to_tpetra(coordinates, coords);
 
+  Teuchos::Array<LinSys::Scalar> normRhsOrig(1), normSlnOrig(1);
+  ownedRhs_->norm2(normRhsOrig());
+  sln_->norm2(normSlnOrig());
+  std::cout << "ownedRhs->norm2(): " << normRhsOrig << ", sln_->norm2(): " << normSlnOrig << std::endl;
   if(linearSolver->getType() == PT_TPETRA_SEGREGATED) {
     std::cout << "Segregated solver called, a segregated system needs to be formed!" << std::endl;
     std::cout << "Original system has " << numDof_ << " dofs per node." << std::endl;
@@ -1347,8 +1351,15 @@ TpetraLinearSystem::finalizeLinearSystem()
     Teuchos::RCP<LinSys::MultiVector> segregatedRhs, segregatedSln;
     segregateProblem(ownedMatrix_, ownedRhs_, sln_, segregatedMatrix, segregatedRhs, segregatedSln);
     std::cout << "segregatedRhs->numVectors=" << segregatedRhs->getNumVectors() << std::endl;
-    // linearSolver->setupLinearSolver(segregatedSln, segregatedMatrix, segregatedRhs, coords);
-    linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
+    Teuchos::Array<LinSys::Scalar> normRhs(numDof_), normSln(numDof_);
+    segregatedRhs->norm2(normRhs());
+    segregatedSln->norm2(normSln());
+    std::cout << "segregatedRhs->norm2(): " << normRhs << ", segregatedSln->norm2(): " << normSln << std::endl;
+    linearSolver->setupLinearSolver(segregatedSln, segregatedMatrix, segregatedRhs, coords);
+    // int iters;
+    // double norm;
+    // linearSolver->solve(sln_, iters, norm, true);
+    // linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
   } else if(linearSolver->getType() == PT_TPETRA) {
     linearSolver->setupLinearSolver(sln_, ownedMatrix_, ownedRhs_, coords);
   }
