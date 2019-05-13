@@ -151,6 +151,11 @@ void TpetraLinearSolver::setMueLu()
   solver_->setProblem(problem_);
 }
 
+size_t TpetraLinearSolver::getProblemSize()
+{
+  return problem_->getLHS()->getGlobalLength();
+}
+
 int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiVector> sln, double& norm)
 {
   Teuchos::RCP<LinSys::MultiVector> solution = problem_->getLHS();
@@ -189,6 +194,11 @@ int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiV
   } else {
     return 1;
   }
+
+  solution->norm2(norms);
+  std::cout << "Solution vector dimensions: nRows=" << solution->getGlobalLength()
+            << ", nCols=" << solution->getNumVectors()
+            << " and solution norm2: " << norms << std::endl;
 
   if(useSegregatedSolver_) {
     // We need to unroll the solution from the segregated format to the flat format

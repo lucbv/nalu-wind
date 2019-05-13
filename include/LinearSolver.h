@@ -210,20 +210,20 @@ class TpetraLinearSolver : public LinearSolver
     LinearSolvers *linearSolvers);
   virtual ~TpetraLinearSolver() ;
 
-    void setSystemObjects(
+  void setSystemObjects(
       Teuchos::RCP<LinSys::Matrix> matrix,
       Teuchos::RCP<LinSys::MultiVector> rhs);
 
-    void setupLinearSolver(
+  void setupLinearSolver(
       Teuchos::RCP<LinSys::MultiVector> sln,
       Teuchos::RCP<LinSys::Matrix> matrix,
       Teuchos::RCP<LinSys::MultiVector> rhs,
       Teuchos::RCP<LinSys::MultiVector> coords);
 
-    virtual void destroyLinearSolver() override;
+  virtual void destroyLinearSolver() override;
 
   //! Initialize the MueLU preconditioner before solve
-    void setMueLu();
+  void setMueLu();
 
   /** Compute the norm of the non-linear solution vector
    *
@@ -231,7 +231,7 @@ class TpetraLinearSolver : public LinearSolver
    *  @param[in] sln The solution vector
    *  @param[out] norm The norm of the solution vector
    */
-    int residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiVector> sln, double& norm);
+  int residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiVector> sln, double& norm);
 
   /** Solve the linear system Ax = b
    *
@@ -240,13 +240,15 @@ class TpetraLinearSolver : public LinearSolver
    *  @param[out] scaledResidual The final residual norm
    *  @param[in]  isFinalOuterIter Is this the final outer iteration
    */
-    int solve(
+  int solve(
       Teuchos::RCP<LinSys::MultiVector> sln,
       int & iterationCount,
       double & scaledResidual,
       bool isFinalOuterIter);
 
-    virtual PetraType getType() override;
+  size_t getProblemSize();
+
+  virtual PetraType getType() override;
 
   private:
   //! The solver parameters

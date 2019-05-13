@@ -186,6 +186,13 @@ private:
   void checkForNaN(bool useOwned);
   bool checkForZeroRow(bool useOwned, bool doThrow, bool doPrint=false);
 
+  // Note: lbv Feb-21-2019
+  // TpetraLinearSystem derives from LinearSystem
+  // as such it stores a LinearSolver, that stores a LinearSystem
+  // keep pointers duplicate pointers to matrix, lhs and rhs
+  // leads to unexpected and dangerous data modifications!
+
+  // Stored attributes
   std::vector<stk::mesh::Entity> ownedAndSharedNodes_;
   std::vector<std::vector<stk::mesh::Entity> > connections_;
   std::vector<GlobalOrdinal> totalGids_;

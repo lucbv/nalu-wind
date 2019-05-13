@@ -1576,7 +1576,6 @@ TpetraLinearSystem::applyDirichletBCs(
   const unsigned endPos)
 {
   stk::mesh::MetaData & metaData = realm_.meta_data();
-  std::cout << "Applying dirichlet BCs to problem" << std::endl;
 
   double adbc_time = -NaluEnv::self().nalu_time();
 
@@ -1748,7 +1747,6 @@ TpetraLinearSystem::resetRows(
 void
 TpetraLinearSystem::loadComplete()
 {
-  std::cout << "Do loadComplete()" << std::endl;
   // LHS
   Teuchos::RCP<Teuchos::ParameterList> params = Teuchos::parameterList ();
   params->set("No Nonlocal Changes", true);
@@ -1788,14 +1786,9 @@ TpetraLinearSystem::solve(
     writeToFile(eqSysName_.c_str(), false);
   }
 
-  Teuchos::Array<LinSys::Scalar> normRhsOrig(1), normSlnOrig(1);
-  ownedRhs_->norm2(normRhsOrig());
-  sln_->norm2(normSlnOrig());
-  std::cout << "ownedRhs->norm2(): " << normRhsOrig << ", sln_->norm2(): " << normSlnOrig << std::endl;
   if(linearSolver->getType() == PT_TPETRA_SEGREGATED) {
+    double segregate_time = -NaluEnv::self().nalu_time();
     const int numDim = realm_.meta_data().spatial_dimension();
-    std::cout << "Segregated solver called, a segregated system needs to be formed!" << std::endl;
-    std::cout << "Original system has " << numDof_ << " dofs per node and " << numDim << " spatial dimensions." << std::endl;
 
     Teuchos::RCP<LinSys::Matrix> segregatedMatrix;
     Teuchos::RCP<LinSys::MultiVector> segregatedRhs, segregatedSln;
@@ -1805,12 +1798,10 @@ TpetraLinearSystem::solve(
     Teuchos::RCP<LinSys::MultiVector> coords
       = Teuchos::RCP<LinSys::MultiVector>(new LinSys::MultiVector(segregatedSln->getMap(), numDim));
 
-    std::cout << "segregatedRhs->numVectors=" << segregatedRhs->getNumVectors() << std::endl;
-    Teuchos::Array<LinSys::Scalar> normRhs(numDof_), normSln(numDof_);
-    segregatedRhs->norm2(normRhs());
-    segregatedSln->norm2(normSln());
-    std::cout << "segregatedRhs->norm2(): " << normRhs << ", segregatedSln->norm2(): " << normSln << std::endl;
     linearSolver->setupLinearSolver(segregatedSln, segregatedMatrix, segregatedRhs, coords);
+    segregate_time += NaluEnv::self().nalu_time();
+    std::cout << "Setup for segregated linear solver took: " << segregate_time << std::endl;
+    std::cout << "segregatedSln has dimensions nRow=" << segregatedSln->getGlobalLength() << ", nCols=" << segregatedSln->getNumVectors() << std::endl;
   }
 
   double solve_time = -NaluEnv::self().nalu_time();
@@ -1824,6 +1815,7 @@ TpetraLinearSystem::solve(
     realm_.provide_memory_summary();
   }
 
+  std::cout << "linearSolver->getProblemSize() " << linearSolver->getProblemSize() << std::endl;
   const int status = linearSolver->solve(sln_, iters, finalResidNorm, realm_.isFinalOuterIter_);
 
   solve_time += NaluEnv::self().nalu_time();
