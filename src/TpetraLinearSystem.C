@@ -90,7 +90,7 @@ TpetraLinearSystem::TpetraLinearSystem(
   const unsigned numDof,
   EquationSystem *eqSys,
   LinearSolver * linearSolver)
-  : LinearSystem(realm, numDof, eqSys, linearSolver)
+  : LinearSystem(realm, numDof, eqSys, linearSolver), segregated_(false)
 {
   Teuchos::ParameterList junk;
   node_ = Teuchos::rcp(new LinSys::Node(junk));
@@ -101,6 +101,16 @@ TpetraLinearSystem::~TpetraLinearSystem()
   // dereference linear solver in safe manner
   TpetraLinearSolver *linearSolver = reinterpret_cast<TpetraLinearSolver *>(linearSolver_);
   linearSolver->destroyLinearSolver();
+}
+
+void TpetraLinearSystem::setSegregated()
+{
+  segregated_ = true;
+}
+
+bool TpetraLinearSystem::isSegregated()
+{
+  return segregated_;
 }
 
 struct CompareEntityEqualById

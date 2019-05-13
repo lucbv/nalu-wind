@@ -96,8 +96,12 @@ LinearSystem *LinearSystem::create(Realm& realm, const unsigned numDof, Equation
     break;
 
   case PT_TPETRA_SEGREGATED:
-    std::cout << "Using the Tpetra segregated solver for momentum!" << std::endl;
-    return new TpetraLinearSystem(realm, numDof, eqSys, solver);
+    {
+      std::cout << "Using the Tpetra segregated solver for momentum!" << std::endl;
+      TpetraLinearSystem *myLinearSystem = new TpetraLinearSystem(realm, numDof, eqSys, solver);
+      myLinearSystem->setSegregated();
+      return myLinearSystem;
+    }
     break;
 
 #ifdef NALU_USES_HYPRE

@@ -65,6 +65,9 @@ public:
     LinearSolver * linearSolver);
   ~TpetraLinearSystem();
 
+  void setSegregated();
+  bool isSegregated();
+
    // Graph/Matrix Construction
   void buildNodeGraph(const stk::mesh::PartVector & parts); // for nodal assembly (e.g., lumped mass and source)
   void buildFaceToNodeGraph(const stk::mesh::PartVector & parts); // face->node assembly
@@ -193,6 +196,8 @@ private:
   // leads to unexpected and dangerous data modifications!
 
   // Stored attributes
+  bool segregated_;
+
   std::vector<stk::mesh::Entity> ownedAndSharedNodes_;
   std::vector<std::vector<stk::mesh::Entity> > connections_;
   std::vector<GlobalOrdinal> totalGids_;
