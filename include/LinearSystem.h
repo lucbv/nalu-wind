@@ -43,6 +43,7 @@ public:
   LinearSystem(
     Realm &realm,
     const unsigned numDof,
+    const bool isSegregated,
     EquationSystem *eqSys,
     LinearSolver *linearSolver);
 
@@ -126,6 +127,7 @@ public:
   virtual void writeToFile(const char * filename, bool useOwned=true)=0;
   virtual void writeSolutionToFile(const char * filename, bool useOwned=true)=0;
   virtual unsigned numDof() const { return numDof_; }
+  virtual bool isSegregated() const { return isSegregated_; }
   const int & linearSolveIterations() {return linearSolveIterations_; }
   const double & linearResidual() {return linearResidual_; }
   const double & nonLinearResidual() {return nonLinearResidual_; }
@@ -152,6 +154,7 @@ protected:
   int writeCounter_;
 
   const unsigned numDof_;
+  const bool isSegregated_;
   const std::string eqSysName_;
   LinearSolver * linearSolver_;
   int linearSolveIterations_;

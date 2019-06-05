@@ -151,11 +151,6 @@ void TpetraLinearSolver::setMueLu()
   solver_->setProblem(problem_);
 }
 
-size_t TpetraLinearSolver::getProblemSize()
-{
-  return problem_->getLHS()->getGlobalLength();
-}
-
 int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiVector> sln, double& norm)
 {
   Teuchos::RCP<LinSys::MultiVector> solution = problem_->getLHS();
@@ -200,26 +195,7 @@ int TpetraLinearSolver::residual_norm(int whichNorm, Teuchos::RCP<LinSys::MultiV
             << ", nCols=" << solution->getNumVectors()
             << " and solution norm2: " << norms << std::endl;
 
-  if(useSegregatedSolver_) {
-    // We need to unroll the solution from the segregated format to the flat format
-    const size_t numVectors = solution->getNumVectors();
-    ThrowRequire(sln->getLocalLength() == solution->getLocalLength()*numVectors);
-
-    // First extract data from sln and solution
-    Teuchos::ArrayRCP<LinSys::Scalar> slnData = sln->getDataNonConst(0);
-    Teuchos::Array<Teuchos::ArrayRCP<const LinSys::Scalar> > solutionData(numVectors);
-    for(size_t colIdx = 0; colIdx < numVectors; ++colIdx) {
-      solutionData[colIdx] = solution->getDataNonConst(colIdx);
-    }
-
-    for(size_t nodeIdx = 0; nodeIdx < solution->getLocalLength(); ++nodeIdx) {
-      for(size_t vectorIdx = 0; vectorIdx < numVectors; ++vectorIdx) {
-        slnData[nodeIdx*numVectors + vectorIdx] = solutionData[vectorIdx][nodeIdx];
-      }
-    }
-  } else {
-    sln = solution;
-  }
+  sln = solution;
 
   return 0;
 }

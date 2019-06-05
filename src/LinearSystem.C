@@ -8,6 +8,7 @@
 
 #include <LinearSystem.h>
 #include <TpetraLinearSystem.h>
+#include <TpetraSegregatedLinearSystem.h>
 #include <EquationSystem.h>
 #include <Realm.h>
 #include <Simulation.h>
@@ -50,6 +51,7 @@ namespace nalu{
 LinearSystem::LinearSystem(
   Realm &realm,
   const unsigned numDof,
+  const bool isSegregated,
   EquationSystem *eqSys,
   LinearSolver *linearSolver)
   : realm_(realm),
@@ -57,6 +59,7 @@ LinearSystem::LinearSystem(
     inConstruction_(false),
     writeCounter_(0),
     numDof_(numDof),
+    isSegregated_(isSegregated),
     eqSysName_(eqSys->name_),
     linearSolver_(linearSolver),
     linearSolveIterations_(0),
@@ -97,10 +100,7 @@ LinearSystem *LinearSystem::create(Realm& realm, const unsigned numDof, Equation
 
   case PT_TPETRA_SEGREGATED:
     {
-      std::cout << "Using the Tpetra segregated solver for momentum!" << std::endl;
-      TpetraLinearSystem *myLinearSystem = new TpetraLinearSystem(realm, numDof, eqSys, solver);
-      myLinearSystem->setSegregated();
-      return myLinearSystem;
+      return new TpetraSegregatedLinearSystem(realm, numDof, eqSys, solver);
     }
     break;
 

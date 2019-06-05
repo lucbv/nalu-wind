@@ -6,10 +6,11 @@
 /*------------------------------------------------------------------------*/
 
 
-#ifndef TpetraLinearSystem_h
-#define TpetraLinearSystem_h
+#ifndef TpetraSegregatedLinearSystem_h
+#define TpetraSegregatedLinearSystem_h
 
 #include <LinearSystem.h>
+#include <TpetraLinearSystem.h>
 
 #include <KokkosInterface.h>
 
@@ -44,26 +45,19 @@ typedef std::pair<stk::mesh::Entity, stk::mesh::Entity> Connection;
 typedef typename LinSys::Vector::dual_view_type dual_view_type;
 typedef typename dual_view_type::t_host host_view_type;
 
-  enum DOFStatus {
-    DS_NotSet           = 0,
-    DS_SkippedDOF       = 1 << 1,
-    DS_OwnedDOF         = 1 << 2,
-    DS_SharedNotOwnedDOF = 1 << 3,
-    DS_GhostedDOF       = 1 << 4
-  };
 
-class TpetraLinearSystem : public LinearSystem
+class TpetraSegregatedLinearSystem : public LinearSystem
 {
 public:
   typedef LinSys::GlobalOrdinal GlobalOrdinal;
   typedef LinSys::LocalOrdinal  LocalOrdinal;
 
-  TpetraLinearSystem(
+  TpetraSegregatedLinearSystem(
     Realm &realm,
-    const unsigned numDof,
+    const unsigned numVecs,
     EquationSystem *eqSys,
     LinearSolver * linearSolver);
-  ~TpetraLinearSystem();
+  ~TpetraSegregatedLinearSystem();
 
   bool isSegregated();
 
@@ -125,13 +119,6 @@ public:
   // Solve
   int solve(stk::mesh::FieldBase * linearSolutionField);
   void loadComplete();
-  void segregateProblem(Teuchos::RCP<LinSys::Matrix> inputMatrix,
-                        Teuchos::RCP<LinSys::Vector> inputRhs,
-                        Teuchos::RCP<LinSys::Vector> inputSln,
-                        Teuchos::RCP<LinSys::Matrix>& segregatedMatrix,
-                        Teuchos::RCP<LinSys::MultiVector>& segregatedRhs,
-                        Teuchos::RCP<LinSys::MultiVector>& segregatedSln);
-  void segregateMap(Teuchos::RCP<const LinSys::Map> inputMap, Teuchos::RCP<LinSys::Map>& segregatedMap);
   void writeToFile(const char * filename, bool useOwned=true);
   void printInfo(bool useOwned=true);
   void writeSolutionToFile(const char * filename, bool useOwned=true);
@@ -174,7 +161,7 @@ private:
   void fill_entity_to_col_LID_mapping();
 
   void copy_tpetra_to_stk(
-    const Teuchos::RCP<LinSys::Vector> tpetraVector,
+    const Teuchos::RCP<LinSys::MultiVector> tpetraVector,
     stk::mesh::FieldBase * stkField);
 
   // This method copies a stk::mesh::field to a tpetra multivector. Each dof/node is written into a different
@@ -189,13 +176,14 @@ private:
   bool checkForZeroRow(bool useOwned, bool doThrow, bool doPrint=false);
 
   // Note: lbv Feb-21-2019
-  // TpetraLinearSystem derives from LinearSystem
+  // TpetraSegregatedLinearSystem derives from LinearSystem
   // as such it stores a LinearSolver, that stores a LinearSystem
   // keep pointers duplicate pointers to matrix, lhs and rhs
   // leads to unexpected and dangerous data modifications!
 
   // Stored attributes
   bool segregated_;
+  const unsigned numVecs_;
 
   std::vector<stk::mesh::Entity> ownedAndSharedNodes_;
   std::vector<std::vector<stk::mesh::Entity> > connections_;
@@ -219,17 +207,17 @@ private:
   Teuchos::RCP<LinSys::Graph>  sharedNotOwnedGraph_;
 
   Teuchos::RCP<LinSys::Matrix> ownedMatrix_;
-  Teuchos::RCP<LinSys::Vector> ownedRhs_;
+  Teuchos::RCP<LinSys::MultiVector> ownedRhs_;
   LinSys::Matrix::local_matrix_type ownedLocalMatrix_;
   LinSys::Matrix::local_matrix_type sharedNotOwnedLocalMatrix_;
   host_view_type ownedLocalRhs_;
   host_view_type sharedNotOwnedLocalRhs_;
 
   Teuchos::RCP<LinSys::Matrix> sharedNotOwnedMatrix_;
-  Teuchos::RCP<LinSys::Vector> sharedNotOwnedRhs_;
+  Teuchos::RCP<LinSys::MultiVector> sharedNotOwnedRhs_;
 
-  Teuchos::RCP<LinSys::Vector> sln_;
-  Teuchos::RCP<LinSys::Vector> globalSln_;
+  Teuchos::RCP<LinSys::MultiVector> sln_;
+  Teuchos::RCP<LinSys::MultiVector> globalSln_;
   Teuchos::RCP<LinSys::Export> exporter_;
 
   MyLIDMapType myLIDs_;
@@ -241,74 +229,7 @@ private:
   std::vector<int> sortPermutation_;
 };
 
-template<typename T1, typename T2>
-void copy_kokkos_unordered_map(const Kokkos::UnorderedMap<T1,T2>& src,
-                               Kokkos::UnorderedMap<T1,T2>& dest)
-{
-  if (src.capacity() > dest.capacity()) {
-    dest = Kokkos::UnorderedMap<T1,T2>(src.capacity());
-  }
-
-  unsigned capacity = src.capacity();
-  unsigned fail_count = 0;
-  for(unsigned i=0; i<capacity; ++i) {
-    if (src.valid_at(i)) {
-      auto insert_result = dest.insert(src.key_at(i));
-      fail_count += insert_result.failed() ? 1 : 0;
-    }
-  }
-  ThrowRequire(fail_count == 0);
-}
-
 int getDofStatus_impl(stk::mesh::Entity node, const Realm& realm);
-
-void sort_connections(std::vector<std::vector<stk::mesh::Entity> >& connections);
-
-void add_lengths_to_comm(const stk::mesh::BulkData& bulk,
-                         stk::CommNeighbors& commNeighbors,
-                         int entity_a_owner,
-                         stk::mesh::EntityId entityId_a,
-                         unsigned numDof,
-                         unsigned numColEntities,
-                         const stk::mesh::EntityId* colEntityIds,
-                         const int* colOwners);
-
-void insert_communicated_col_indices(const std::vector<int>& neighborProcs,
-                                     stk::CommNeighbors& commNeighbors,
-                                     unsigned numDof,
-                                     LocalGraphArrays& ownedGraph,
-                                     const LinSys::Map& rowMap,
-                                     const LinSys::Map& colMap);
-
-int getDofStatus_impl(stk::mesh::Entity node, const Realm& realm);
-
-void insert_single_dof_row_into_graph(LocalGraphArrays& crsGraph, LinSys::LocalOrdinal rowLid,
-                                      LinSys::LocalOrdinal maxOwnedRowId, unsigned numDof,
-                                      unsigned numCols,
-                                      const std::vector<LinSys::LocalOrdinal>& colLids);
-
-size_t get_neighbor_index(const std::vector<int>& neighborProcs, int proc);
-
-stk::mesh::Entity get_entity_master(const stk::mesh::BulkData& bulk,
-                                    stk::mesh::Entity entity,
-                                    stk::mesh::EntityId naluId);
-
-void fill_neighbor_procs(std::vector<int>& neighborProcs,
-                         const stk::mesh::BulkData& bulk,
-                         const Realm& realm);
-
-void fill_owned_and_shared_then_nonowned_ordered_by_proc(std::vector<LinSys::GlobalOrdinal>& totalGids,
-                                                         std::vector<int>& srcPids,
-                                                         int localProc,
-                                                         const Teuchos::RCP<LinSys::Map>& ownedRowsMap,
-                                                         const Teuchos::RCP<LinSys::Map>& sharedNotOwnedRowsMap,
-                                                         const std::set<std::pair<int,LinSys::GlobalOrdinal> >& ownersAndGids,
-                                                         const std::vector<int>& sharedPids);
-
-void fill_in_extra_dof_rows_per_node(LocalGraphArrays& csg, int numDof);
-
-template <typename ViewType>
-void remove_invalid_indices(LocalGraphArrays& csg, ViewType& rowLengths);
 
 } // namespace nalu
 } // namespace Sierra

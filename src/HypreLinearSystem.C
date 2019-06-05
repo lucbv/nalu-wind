@@ -42,7 +42,7 @@ HypreLinearSystem::HypreLinearSystem(
   const unsigned numDof,
   EquationSystem* eqSys,
   LinearSolver* linearSolver)
-  : LinearSystem(realm, numDof, eqSys, linearSolver),
+  : LinearSystem(realm, numDof, false, eqSys, linearSolver),
     rowFilled_(0),
     rowStatus_(0),
     idBuffer_(0)

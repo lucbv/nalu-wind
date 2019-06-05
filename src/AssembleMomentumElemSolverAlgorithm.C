@@ -160,16 +160,16 @@ AssembleMomentumElemSolverAlgorithm::execute()
   // ip values
   std::vector<double>uIp(nDim);
 
-  // extrapolated value from the L/R direction 
+  // extrapolated value from the L/R direction
   std::vector<double>uIpL(nDim);
   std::vector<double>uIpR(nDim);
   // limiter values from the L/R direction, 0:1
-  std::vector<double> limitL(nDim,1.0); 
+  std::vector<double> limitL(nDim,1.0);
   std::vector<double> limitR(nDim,1.0);
   // extrapolated gradient from L/R direction
   std::vector<double> duL(nDim);
   std::vector<double> duR(nDim);
- 
+
   // coords
   std::vector<double>coordIp(nDim);
 
@@ -189,7 +189,7 @@ AssembleMomentumElemSolverAlgorithm::execute()
 
   // define some common selectors
   stk::mesh::Selector s_locally_owned_union = meta_data.locally_owned_part()
-    & stk::mesh::selectUnion(partVec_) 
+    & stk::mesh::selectUnion(partVec_)
     & !(realm_.get_inactive_selector());
 
   stk::mesh::BucketVector const& elem_buckets =
@@ -245,12 +245,12 @@ AssembleMomentumElemSolverAlgorithm::execute()
     double *p_dndx = &ws_dndx[0];
     double *p_shape_function = &ws_shape_function[0];
     double *p_adv_shape_function = skewSymmetric ? &ws_adv_shape_function[0] : &ws_shape_function[0];
-    
+
     // extract shape function
     meSCS->shape_fcn(&p_shape_function[0]);
     if ( skewSymmetric )
       meSCS->shifted_shape_fcn(&p_adv_shape_function[0]);
-   
+
     // resize possible supplemental element alg
     for ( size_t i = 0; i < supplementalAlgSize; ++i )
       supplementalAlg_[i]->elem_resize(meSCS, meSCV);
@@ -320,7 +320,7 @@ AssembleMomentumElemSolverAlgorithm::execute()
       // compute dndx
       if ( useShiftedGradOp )
         meSCS->shifted_grad_op(1, &p_coordinates[0], &p_dndx[0], &ws_deriv[0], &ws_det_j[0], &scs_error);
-      else 
+      else
         meSCS->grad_op(1, &p_coordinates[0], &p_dndx[0], &ws_deriv[0], &ws_det_j[0], &scs_error);
 
       for ( int ip = 0; ip < numScsIp; ++ip ) {
@@ -387,7 +387,7 @@ AssembleMomentumElemSolverAlgorithm::execute()
                                    + p_viscosity[ir]/p_densityNp1[ir]);
         const double pecfac = pecletFunction_->execute(std::abs(udotx)/(diffIp+small));
         const double om_pecfac = 1.0-pecfac;
-	
+
         // determine limiter if applicable
         if ( useLimiter ) {
           for ( int i = 0; i < nDim; ++i ) {
@@ -398,7 +398,7 @@ AssembleMomentumElemSolverAlgorithm::execute()
             p_limitR[i] = van_leer(dqMr, dq, small);
           }
         }
-	
+
         // final upwind extrapolation; with limiter
         for ( int i = 0; i < nDim; ++i ) {
           p_uIpL[i] = p_velocityNp1[ilNdim+i] + p_duL[i]*hoUpwind*p_limitL[i];

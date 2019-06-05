@@ -246,8 +246,6 @@ class TpetraLinearSolver : public LinearSolver
       double & scaledResidual,
       bool isFinalOuterIter);
 
-  size_t getProblemSize();
-
   virtual PetraType getType() override;
 
   private:

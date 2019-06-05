@@ -57,6 +57,7 @@ namespace sierra{
 namespace nalu{
 
 class TpetraLinearSolver;
+class TpetraSegregatedLinearSolver;
 
 struct LinSys {
 

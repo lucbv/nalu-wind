@@ -188,6 +188,7 @@ add_sources(GlobalHeaderList
    SurfaceForceAndMomentWallFunctionAlgorithm.h
    TimeIntegrator.h
    TpetraLinearSystem.h
+   TpetraSegregatedLinearSystem.h
    TurbKineticEnergyEquationSystem.h
    TurbKineticEnergyKsgsBuoyantElemSuppAlg.h
    TurbKineticEnergyKsgsNodeSourceSuppAlg.h

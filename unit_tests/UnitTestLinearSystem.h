@@ -18,7 +18,7 @@ class TestLinearSystem : public sierra::nalu::LinearSystem
 public:
 
  TestLinearSystem( sierra::nalu::Realm &realm, const unsigned numDof, sierra::nalu::EquationSystem *eqSys)
-   : sierra::nalu::LinearSystem(realm, numDof, eqSys, nullptr), numSumIntoCalls_(0)
+   : sierra::nalu::LinearSystem(realm, numDof, false, eqSys, nullptr), numSumIntoCalls_(0)
   {}
 
   virtual ~TestLinearSystem() {}
